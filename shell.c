@@ -11,22 +11,36 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+#define BUFFSIZE 512
 
 extern char **get_line(void);
 
+void sig_handler(int signo){
+  wait();
+}
+
 int main(int argc, char *argv[]) {
-  int i, rarg_pos;
+  int i;
   char redir_out, redir_in, bkg, parse_err, in_call;
   char** args;
+  char* comm_args[BUFFSIZE];
+
+  if(signal(SIGCHLD, handler)) {
+    printf("Could not set signal handler\n");
+    exit(-1);
+  }
 
   while(1) {
+    /* Initialize values and print prompt */
     redir_out = 0;
     redir_in = 0;
     bkg = 0;
-    rarg_pos = 0;
     parse_err = 0;
     in_call = 1;
+    memset(comm_args, 0, BUFFSIZE);
     printf("\ndsh$");
+
+    /* Gets the line from stdin, and parses input */
     args = get_line();
     if(!args) continue;
     if(strcmp(args[0],"exit") == 0) break;
@@ -38,7 +52,8 @@ int main(int argc, char *argv[]) {
           break;
         }
         redir_in = 1;
-        /* file redir in here */
+        in_call = 0;
+        /* TODO file redir in here */
         
       }
       if(args[i]=='>'){
@@ -48,29 +63,40 @@ int main(int argc, char *argv[]) {
           break;
         }
         redir_out = 1;
-        /* file redir out here */
+        in_call = 0;
+        /* TODO file redir out here */
         
       }
       if(args[i] == '&'){
         bkg = 1;
         in_call = 0;
       }
-      if(in_call) rarg_pos++;
+      if(in_call && i > 0){
+        comm_args[i-1] = args[i];
+      }
     }
     if(parse_err) continue;
 
+    /* Forks the process. The child does the command, the parent
+       either waits, or continues going with an interupt signal */
     pid_t proc;
-
     proc = fork();
+
     if(proc = -1){
       fprintf(stderr, "\nFork failed, got %s\n",strerror(errno));
       exit(2);
     }
     else if(proc = 0){
       /* run child process here */
+      
+      /* TODO redirection here */
+
+      execvp(args[0], comm_args);
     }
     else {
       /* do parent here */
+      if(!bkg) wait();
+      
     }
   }
   return 0;
