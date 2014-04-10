@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
@@ -15,28 +16,32 @@
 
 extern char **get_line(void);
 
-void sig_handler(int signo){
-  wait();
-}
+/*void sig_handler(int signo){
+  wait(&status);
+}*/
 
 int main(int argc, char *argv[]) {
   int i;
+  int status = 0;
   char redir_out, redir_in, bkg, parse_err, in_call;
   char** args;
   char* comm_args[BUFFSIZE];
-  char* redir_ins, redir_outs;
+  char* redir_ins;
+  char* redir_outs;
   pid_t proc, pid_err_check;
-  FILE* redir_outf, redir_inf;
+  /*FILE* redir_outf, redir_inf;*/
 
   /* Might not be necessary
     if(signal(SIGCHLD, handler)) {
     printf("Could not set signal handler\n");
     exit(-1);
   }*/
-
+  fprintf(stderr, "got past setup\n");
   while(1) {
     /* Check to see if any background processes completed */
-    while(waitpid(-1, &status, WNOHANG) != 0){
+    while(!waitpid(-1, &status, WNOHANG) /*!= 0*/){
+      sleep(1);
+      fprintf(stderr, "waiting for background, stat is %d\n", status);
       if(pid_err_check == -1){
         fprintf(stderr, "\nWaiting for child process failed.");
         exit(1);
@@ -45,10 +50,10 @@ int main(int argc, char *argv[]) {
     /* Initialize values and print prompt */
     redir_out = 0;
     redir_in = 0;
-    redir_outf = NULL;
-    redir_inf = NULL;
-    redir_ins = NULL;
-    redir_outs = NULL;
+    /*redir_outf = NULL;
+    redir_inf = NULL;*/
+    redir_ins = "";
+    redir_outs = "";
     bkg = 0;
     parse_err = 0;
     in_call = 1;
@@ -58,9 +63,15 @@ int main(int argc, char *argv[]) {
     /* Gets the line from stdin, and parses input */
     args = get_line();
     if(!args) continue;
-    if(strcmp(args[0],"exit") == 0) break;
+
+    if(strcmp(args[0], "$?") == 0){
+      printf("\n%d", status);
+      continue;
+    }
+
+    if(strcmp(args[0], "exit") == 0) break;
     for(i = 0; args[i] != NULL; i++) {
-      if(args[i]=='<'){
+      if(strcmp(args[i],"<") == 0) {
         if(args[i+1] == NULL){
           fprintf(stderr, "\nError: no file given to <");
           parse_err = 1;
@@ -72,7 +83,8 @@ int main(int argc, char *argv[]) {
         redir_ins = args[i+1];
         
       }
-      if(args[i]=='>'){
+
+      if(strcmp(args[i],">") == 0) {
         if(args[i+1] == NULL){
           fprintf(stderr, "\nError: no file given to >");
           parse_err = 1;
@@ -84,7 +96,7 @@ int main(int argc, char *argv[]) {
         redir_outs = args[i+1];
         
       }
-      if(args[i] == '&'){
+      if(strcmp(args[i],"&") == 0){
         bkg = 1;
         in_call = 0;
       }
@@ -98,11 +110,12 @@ int main(int argc, char *argv[]) {
        either waits, or continues going with an interupt signal */
     proc = fork();
 
-    if(proc = -1){
+    if(proc == -1){
       fprintf(stderr, "\nFork failed, got %s\n",strerror(errno));
       exit(2);
+      /*continue;*/
     }
-    else if(proc = 0){
+    else if(proc == 0){
       /* run child process here */
       
       /* redirection here */
@@ -111,14 +124,14 @@ int main(int argc, char *argv[]) {
           fprintf(stderr, "\nFile name is NULL. You should not see this");
           continue;
         }
-        redir_inf = freopen(redir_ins, "r", stdin);
+        freopen(redir_ins, "r", stdin);
       }
       if(redir_out){
         if(!redir_ins){
           fprintf(stderr, "\nFile name is NULL. You should not see this");
           continue;
         }
-        redir_outf = freopen(redir_outs, "w", stdout);
+        freopen(redir_outs, "w", stdout);
       }
       
 
