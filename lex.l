@@ -1,3 +1,5 @@
+%{ lex.l : A flex specification file for scanning input %}
+%{ By: N. Whitehead, used with his permission %}
 %option noyywrap
 
 %{
