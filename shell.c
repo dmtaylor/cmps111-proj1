@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
   char redir_out, redir_in, bkg, parse_err, in_call;
   char** args;
   char* comm_args[BUFFSIZE];
+  pid_t proc, pid_err_check;
 
   if(signal(SIGCHLD, handler)) {
     printf("Could not set signal handler\n");
@@ -31,6 +32,13 @@ int main(int argc, char *argv[]) {
   }
 
   while(1) {
+    /* Check to see if any background processes completed */
+    while(waitpid(-1, &status, WNOHANG) != 0){
+      if(pid_err_check == -1){
+        fprintf(stderr, "\nWaiting for child process failed.");
+        exit(1);
+      }
+    }
     /* Initialize values and print prompt */
     redir_out = 0;
     redir_in = 0;
@@ -79,7 +87,6 @@ int main(int argc, char *argv[]) {
 
     /* Forks the process. The child does the command, the parent
        either waits, or continues going with an interupt signal */
-    pid_t proc;
     proc = fork();
 
     if(proc = -1){
@@ -92,10 +99,18 @@ int main(int argc, char *argv[]) {
       /* TODO redirection here */
 
       execvp(args[0], comm_args);
+      fprintf(stderr, "\nexecvp returned to shell. You should not see this.\n");
+      exit(1);
     }
     else {
       /* do parent here */
-      if(!bkg) wait();
+      if(!bkg){
+        pid_err_check = wait(&status);
+        if(pid_err_check == -1){
+          fprintf(stderr, "\nWaiting for child process failed.");
+          exit(1);
+        }
+      }
       
     }
   }
