@@ -24,12 +24,15 @@ int main(int argc, char *argv[]) {
   char redir_out, redir_in, bkg, parse_err, in_call;
   char** args;
   char* comm_args[BUFFSIZE];
+  char* redir_ins, redir_outs;
   pid_t proc, pid_err_check;
+  FILE* redir_outf, redir_inf;
 
-  if(signal(SIGCHLD, handler)) {
+  /* Might not be necessary
+    if(signal(SIGCHLD, handler)) {
     printf("Could not set signal handler\n");
     exit(-1);
-  }
+  }*/
 
   while(1) {
     /* Check to see if any background processes completed */
@@ -42,6 +45,10 @@ int main(int argc, char *argv[]) {
     /* Initialize values and print prompt */
     redir_out = 0;
     redir_in = 0;
+    redir_outf = NULL;
+    redir_inf = NULL;
+    redir_ins = NULL;
+    redir_outs = NULL;
     bkg = 0;
     parse_err = 0;
     in_call = 1;
@@ -61,7 +68,8 @@ int main(int argc, char *argv[]) {
         }
         redir_in = 1;
         in_call = 0;
-        /* TODO file redir in here */
+        /* file redir in here */
+        redir_ins = args[i+1];
         
       }
       if(args[i]=='>'){
@@ -72,7 +80,8 @@ int main(int argc, char *argv[]) {
         }
         redir_out = 1;
         in_call = 0;
-        /* TODO file redir out here */
+        /* file redir out here */
+        redir_outs = args[i+1];
         
       }
       if(args[i] == '&'){
@@ -96,7 +105,22 @@ int main(int argc, char *argv[]) {
     else if(proc = 0){
       /* run child process here */
       
-      /* TODO redirection here */
+      /* redirection here */
+      if(redir_in){
+        if(!redir_ins){
+          fprintf(stderr, "\nFile name is NULL. You should not see this");
+          continue;
+        }
+        redir_inf = freopen(redir_ins, "r", stdin);
+      }
+      if(redir_out){
+        if(!redir_ins){
+          fprintf(stderr, "\nFile name is NULL. You should not see this");
+          continue;
+        }
+        redir_outf = freopen(redir_outs, "w", stdout);
+      }
+      
 
       execvp(args[0], comm_args);
       fprintf(stderr, "\nexecvp returned to shell. You should not see this.\n");
@@ -107,7 +131,7 @@ int main(int argc, char *argv[]) {
       if(!bkg){
         pid_err_check = wait(&status);
         if(pid_err_check == -1){
-          fprintf(stderr, "\nWaiting for child process failed.");
+          fprintf(stderr, "\nWaiting for child process failed.\n");
           exit(1);
         }
       }
