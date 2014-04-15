@@ -22,7 +22,7 @@ extern char **get_line(void);
 
 int main(int argc, char *argv[]) {
   int i;
-  int status = 0;
+  int status;
   char redir_out, redir_in, bkg, parse_err, in_call;
   char** args;
   char* comm_args[BUFFSIZE];
@@ -31,17 +31,13 @@ int main(int argc, char *argv[]) {
   pid_t proc, pid_err_check;
   /*FILE* redir_outf, redir_inf;*/
 
-  /* Might not be necessary
-    if(signal(SIGCHLD, handler)) {
-    printf("Could not set signal handler\n");
-    exit(-1);
-  }*/
-  fprintf(stderr, "got past setup\n");
+
+  status = 0;
   while(1) {
     /* Check to see if any background processes completed */
     while(!waitpid(-1, &status, WNOHANG) /*!= 0*/){
-      sleep(1);
-      fprintf(stderr, "waiting for background, stat is %d\n", status);
+      /*sleep(1);
+      fprintf(stderr, "waiting for background, stat is %d\n", status);*/
       if(pid_err_check == -1){
         fprintf(stderr, "\nWaiting for child process failed.");
         exit(1);
@@ -58,14 +54,14 @@ int main(int argc, char *argv[]) {
     parse_err = 0;
     in_call = 1;
     memset(comm_args, 0, BUFFSIZE);
-    printf("\ndsh$");
+    printf("dsh$ ");
 
     /* Gets the line from stdin, and parses input */
     args = get_line();
     if(!args) continue;
 
     if(strcmp(args[0], "$?") == 0){
-      printf("\n%d", status);
+      printf("%d\n", status);
       continue;
     }
 
@@ -100,14 +96,17 @@ int main(int argc, char *argv[]) {
         bkg = 1;
         in_call = 0;
       }
-      if(in_call && i > 0){
-        comm_args[i-1] = args[i];
+      if(in_call /*&& i > 0*/){
+        comm_args[i/*-1*/] = args[i];
       }
     }
-    if(parse_err) continue;
+    if(parse_err){
+    fprintf(stderr, "Has parse error\n");
+    continue;
+    }
 
     /* Forks the process. The child does the command, the parent
-       either waits, or continues going with an interupt signal */
+       either waits, or continues going */
     proc = fork();
 
     if(proc == -1){
@@ -136,7 +135,8 @@ int main(int argc, char *argv[]) {
       
 
       execvp(args[0], comm_args);
-      fprintf(stderr, "\nexecvp returned to shell. You should not see this.\n");
+      fprintf(stderr, "\nexecvp returned to shell. Could not start command.\n");
+      fprintf(stderr, "errno is %s\n", strerror(errno));
       exit(1);
     }
     else {
