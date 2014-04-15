@@ -22,8 +22,8 @@ extern char **get_line(void);
 
 int main(int argc, char *argv[]) {
   int i;
-  int status;
-  char redir_out, redir_in, bkg, parse_err, in_call;
+  int status, checkval, bkg;
+  char redir_out, redir_in, parse_err, in_call, reprint;
   char** args;
   char* comm_args[BUFFSIZE];
   char* redir_ins;
@@ -31,18 +31,29 @@ int main(int argc, char *argv[]) {
   pid_t proc, pid_err_check;
   /*FILE* redir_outf, redir_inf;*/
 
-
+  fprintf(stderr, "Past initialization\n");
   status = 0;
+  bkg = 0;
   while(1) {
+    fflush(NULL);
     /* Check to see if any background processes completed */
-    while(!waitpid(-1, &status, WNOHANG) /*!= 0*/){
-      /*sleep(1);
+    checkval = waitpid(-1, &status, WNOHANG);
+    while(checkval){
+      if(errno == 10) break;
+      /*fprintf(stderr, "checkval is %d\n", checkval);
+      fprintf(stderr, "errno id %d\n", errno);
+      sleep(1);
       fprintf(stderr, "waiting for background, stat is %d\n", status);*/
-      if(pid_err_check == -1){
+      /*if(pid_err_check == -1){
         fprintf(stderr, "\nWaiting for child process failed.");
         exit(1);
-      }
+      }*/
+      /*reprint = 1;*/
+      printf("dsh2$ ");
+      checkval = waitpid(-1, &status, WNOHANG);
     }
+    /*if(reprint) continue;*/
+    /*fprintf(stderr, "Made it through waiting\n");*/
     /* Initialize values and print prompt */
     redir_out = 0;
     redir_in = 0;
@@ -54,7 +65,9 @@ int main(int argc, char *argv[]) {
     parse_err = 0;
     in_call = 1;
     memset(comm_args, 0, BUFFSIZE);
+    fflush(NULL);
     printf("dsh$ ");
+    
 
     /* Gets the line from stdin, and parses input */
     args = get_line();
@@ -66,7 +79,9 @@ int main(int argc, char *argv[]) {
     }
 
     if(strcmp(args[0], "exit") == 0) break;
+
     for(i = 0; args[i] != NULL; i++) {
+      printf("arg %d : %s\n", i, args[i]);
       if(strcmp(args[i],"<") == 0) {
         if(args[i+1] == NULL){
           fprintf(stderr, "\nError: no file given to <");
@@ -93,6 +108,7 @@ int main(int argc, char *argv[]) {
         
       }
       if(strcmp(args[i],"&") == 0){
+        fprintf(stderr, "found & at index %d\n", i);
         bkg = 1;
         in_call = 0;
       }
@@ -141,8 +157,11 @@ int main(int argc, char *argv[]) {
     }
     else {
       /* do parent here */
+      printf("bkg is %d\n");
       if(!bkg){
+        printf("waiting normally\n");
         pid_err_check = wait(&status);
+        fflush(NULL);
         if(pid_err_check == -1){
           fprintf(stderr, "\nWaiting for child process failed.\n");
           exit(1);
