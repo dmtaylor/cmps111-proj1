@@ -1,5 +1,6 @@
 # Makefile: A makefile for project 1
 # by: David Taylor
+# Original file.
 
 MKFILE    = Makefile
 CC        = cc
@@ -13,6 +14,9 @@ OBJECTS	  = ${CSRC:.c=.o}
 SOURCES   = ${CSUBMITS} ${MKFILE} README LICENSE design.pdf .gitignore
 
 all : ${EXECFILE}
+
+run : ${EXECFILE}
+	./${EXECFILE}
 
 ${EXECFILE} : ${OBJECTS}
 	${CC} ${OBJECTS} -o ${EXECFILE}
