@@ -1,4 +1,5 @@
 /* Test program 1 : test background processes */
+/* By David Taylor */
 
 #include <stdio.h>
 #include <stdlib.h>
