@@ -16,11 +16,8 @@
 
 extern char **get_line(void);
 
-/*void sig_handler(int signo){
-  wait(&status);
-}*/
-
 int main(int argc, char *argv[]) {
+  /* Declarations */
   int i;
   int status, checkval, bkg;
   char redir_out, redir_in, parse_err, in_call, reprint;
@@ -29,91 +26,116 @@ int main(int argc, char *argv[]) {
   char* redir_ins;
   char* redir_outs;
   pid_t proc, pid_err_check;
-  /*FILE* redir_outf, redir_inf;*/
+  uid_t user_id;
 
-  fprintf(stderr, "Past initialization\n");
+  /* Prints banner and sets a few values that need to be initialized */
+  printf("Welcome to d(ave's) sh(ell): a barebones shell\n");
+  printf("Type exit to exit\n");
   status = 0;
   bkg = 0;
   while(1) {
-    fflush(NULL);
-    /* Check to see if any background processes completed */
+    fflush(stdout);
+    /* Check to see if any background processes completed         */
+    /* Should be portable, checks for -1 and 0 in the event of no */
+    /* children. This eschews the need for a signal handler       */
     checkval = waitpid(-1, &status, WNOHANG);
     while(checkval){
-      if(errno == 10) break;
-      /*fprintf(stderr, "checkval is %d\n", checkval);
-      fprintf(stderr, "errno id %d\n", errno);
-      sleep(1);
-      fprintf(stderr, "waiting for background, stat is %d\n", status);*/
-      /*if(pid_err_check == -1){
+      if(errno == 10) break; /* errno 10 is no child processes */
+      if(pid_err_check == -1){
         fprintf(stderr, "\nWaiting for child process failed.");
         exit(1);
-      }*/
-      /*reprint = 1;*/
-      printf("dsh2$ ");
+      }
       checkval = waitpid(-1, &status, WNOHANG);
     }
-    /*if(reprint) continue;*/
-    /*fprintf(stderr, "Made it through waiting\n");*/
+
     /* Initialize values and print prompt */
     redir_out = 0;
     redir_in = 0;
-    /*redir_outf = NULL;
-    redir_inf = NULL;*/
     redir_ins = "";
     redir_outs = "";
     bkg = 0;
     parse_err = 0;
     in_call = 1;
+    user_id = getuid(); /* checks user id for prompt */
     memset(comm_args, 0, BUFFSIZE);
-    fflush(NULL);
-    printf("dsh$ ");
+    printf("dsh");
+    if(user_id) printf("$ ");
+    else printf("# ");
     
 
-    /* Gets the line from stdin, and parses input */
+    /* Gets the line from stdin, handles shell comands */
     args = get_line();
-    if(!args) continue;
+    if(args[0] == NULL) continue;
 
-    if(strcmp(args[0], "$?") == 0){
-      printf("%d\n", status);
+    /* Exits program */
+    if(strcmp(args[0], "exit") == 0) break;
+
+    /* Implementation of directory changing */
+    if(strcmp(args[0], "cd") == 0){
+      if(args[1] == NULL){
+        chdir("~");
+      }
+      else{
+        chdir(args[1]);
+      }
       continue;
     }
 
-    if(strcmp(args[0], "exit") == 0) break;
 
+    /* Prints exit status of last program to finish */
+    if(strcmp(args[0], "$?") == 0){
+      if(WIFEXITED(status)){
+        printf("%d\n", WEXITSTATUS(status));
+        fflush(NULL);
+      }
+      else if(WIFSIGNALED(status)){
+        printf("exited with %s\n", strerror(WTERMSIG(status)));
+        fflush(NULL);
+      }
+      else{
+        printf("No prev status\n");
+        fflush(NULL);
+      }
+      continue;
+    }
+
+    /* parses input line */
     for(i = 0; args[i] != NULL; i++) {
-      printf("arg %d : %s\n", i, args[i]);
+
+      /* handles file redirection */
       if(strcmp(args[i],"<") == 0) {
         if(args[i+1] == NULL){
-          fprintf(stderr, "\nError: no file given to <");
+          fprintf(stderr, "Error: no file given to <\n");
           parse_err = 1;
           break;
         }
         redir_in = 1;
         in_call = 0;
-        /* file redir in here */
         redir_ins = args[i+1];
         
       }
 
       if(strcmp(args[i],">") == 0) {
         if(args[i+1] == NULL){
-          fprintf(stderr, "\nError: no file given to >");
+          fprintf(stderr, "Error: no file given to >\n");
           parse_err = 1;
           break;
         }
         redir_out = 1;
         in_call = 0;
-        /* file redir out here */
         redir_outs = args[i+1];
         
       }
+
+      /* Sets flags for background running */
       if(strcmp(args[i],"&") == 0){
-        fprintf(stderr, "found & at index %d\n", i);
         bkg = 1;
         in_call = 0;
       }
-      if(in_call /*&& i > 0*/){
-        comm_args[i/*-1*/] = args[i];
+      
+      /* gets arguments for program */
+      if(in_call){
+        comm_args[i] = args[i];
       }
     }
     if(parse_err){
@@ -130,10 +152,9 @@ int main(int argc, char *argv[]) {
       exit(2);
       /*continue;*/
     }
+
+    /* run child process here */
     else if(proc == 0){
-      /* run child process here */
-      
-      /* redirection here */
       if(redir_in){
         if(!redir_ins){
           fprintf(stderr, "\nFile name is NULL. You should not see this");
@@ -148,20 +169,30 @@ int main(int argc, char *argv[]) {
         }
         freopen(redir_outs, "w", stdout);
       }
-      
 
+      /* Implementation of echo. NOTE: file redirection in does not */
+      /* work with echo, only out.                                  */
+      if(strcmp(args[0], "echo") == 0){
+        for(i=1; comm_args[i] != NULL; i++){
+          printf("%s ", comm_args[i]);
+        }
+        printf("\n");
+        exit(0);
+      }
+      
       execvp(args[0], comm_args);
-      fprintf(stderr, "\nexecvp returned to shell. Could not start command.\n");
+      fprintf(stderr, "\nexecvp returned to shell. It failed.\n");
       fprintf(stderr, "errno is %s\n", strerror(errno));
       exit(1);
     }
+
+    /* do parent here */
     else {
-      /* do parent here */
-      printf("bkg is %d\n");
+      /* waits if background running is not ennabled */
+      /* otherwise, loops back to beginnning         */
       if(!bkg){
-        printf("waiting normally\n");
         pid_err_check = wait(&status);
-        fflush(NULL);
+        fflush(stdout);
         if(pid_err_check == -1){
           fprintf(stderr, "\nWaiting for child process failed.\n");
           exit(1);
