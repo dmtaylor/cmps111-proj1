@@ -1,6 +1,10 @@
 %option noyywrap
 
 %{
+/* lex.l : Flex specification for dsh
+ * Originally provided by N. Whitehead
+ * Modifications for acceptable input made by David Taylor (damtaylo)
+ */
 #undef _POSIX_SOURCE
 #define _POSIX_SOURCE
 #define YY_PROTO(proto) proto
