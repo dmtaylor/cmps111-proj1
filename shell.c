@@ -1,7 +1,8 @@
 /* shell.c : Main file for shell
  * Project 1
  * By: David Taylor
- * Builds dsh
+ * Main source file for shell (dsh)
+ * Original code
  */
 
 #include <stdio.h>
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
   int status, checkval, bkg;
   char redir_out, redir_in, parse_err, in_call, reprint;
   char** args;
-  char* comm_args[BUFFSIZE];
+  char* comm_args[BUFFSIZE]; /* arguments for the command */
   char* redir_ins;
   char* redir_outs;
   pid_t proc, pid_err_check;
@@ -45,6 +46,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "\nWaiting for child process failed.");
         exit(1);
       }
+
       checkval = waitpid(-1, &status, WNOHANG);
     }
 
@@ -78,6 +80,7 @@ int main(int argc, char *argv[]) {
       else{
         chdir(args[1]);
       }
+
       continue;
     }
 
@@ -96,6 +99,7 @@ int main(int argc, char *argv[]) {
         printf("No prev status\n");
         fflush(NULL);
       }
+
       continue;
     }
 
@@ -121,6 +125,7 @@ int main(int argc, char *argv[]) {
           parse_err = 1;
           break;
         }
+
         redir_out = 1;
         in_call = 0;
         redir_outs = args[i+1];
@@ -150,24 +155,29 @@ int main(int argc, char *argv[]) {
     if(proc == -1){
       fprintf(stderr, "\nFork failed, got %s\n",strerror(errno));
       exit(2);
-      /*continue;*/
     }
 
     /* run child process here */
     else if(proc == 0){
       if(redir_in){
         if(!redir_ins){
-          fprintf(stderr, "\nFile name is NULL. You should not see this");
-          continue;
+          fprintf(stderr, "\nFile name in is NULL. You should not see this");
+          exit(1);
         }
-        freopen(redir_ins, "r", stdin);
+        if(freopen(redir_ins, "r", stdin) == NULL){
+          fprintf(stderr, "freopen read failed reading from file ignored\n");
+        }
       }
+
       if(redir_out){
-        if(!redir_ins){
-          fprintf(stderr, "\nFile name is NULL. You should not see this");
-          continue;
+        if(!redir_outs){
+          fprintf(stderr, "\nFile name out is NULL. You should not see this");
+          exit(1);
         }
-        freopen(redir_outs, "w", stdout);
+        if(freopen(redir_outs, "w", stdout) == NULL){
+          fprintf(stderr, "freopen read failed writing to file ignored\n");
+          exit(1);
+        }
       }
 
       /* Implementation of echo. NOTE: file redirection in does not */
@@ -201,5 +211,6 @@ int main(int argc, char *argv[]) {
       
     }
   }
+
   return 0;
 }
