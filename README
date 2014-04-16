@@ -1,10 +1,114 @@
 README
 
 Project 1: Building a Shell
-by: David Taylor
+by: David Taylor (damtaylo@ucsc.edu)
 
-###################################
-dsh
-###################################
+########################################################################
+                                 dsh
+########################################################################
 
-A simple shell.
+Dave's shell (dsh) is a simple shell for MINIX 3, with basic 
+functionality.
+
+
+                         Build Instructions
+########################################################################
+
+The binary can be build with the target all with make, or a
+make-like program. To build, use:
+
+                make
+
+or:
+
+                make all
+
+To clean object files, use the clean target:
+
+                make clean
+
+To clean object files and the binary, use:
+
+                make spotless
+
+To run the shell after it is built:
+
+                ./dsh
+
+You can also run the shell through make with:
+
+                make run
+
+                           Design Notes
+########################################################################
+
+Please see the design document (design.pdf) for primary design
+details. However, I differed from the design document in several
+details, which I will enumerate.
+
+  - To handle background and zombie processes, I eschewed
+    using a signal handler to wait for background processes
+    in favor of a synchronous wait which occurs upon each command,
+    similar to the solution employed by bash. The option flag
+    WNOHANG tells the system to wait for any processes, which
+    have terminated, but not to stall for unfinished processes.
+    This means that before the user is able to enter a command,
+    the shell checks for any finished child and waits for it. This
+    design feature was implemented at the suggestion of T. Schmitz.
+
+  - For file redirection, I instead used freopen() instead of open()
+    and dup2(). The reason for this was simply code brevity. As the
+    only difference is that freopen() uses FILE* and dup2() uses
+    file descriptors, and they essentially do the same thing, I chose
+    freopen() as one line of code is better than two.
+
+  - After opening a file for redirection, I chose not to close it,
+    as there is no easy way to. Upon consulting T. Schmitz, I
+    concluded that it does not particularly matter.
+
+
+                         Additional Features
+########################################################################
+
+In addition to the features required in the assignment specs and in
+the design document, I added several minor features to the shell
+which make it significantly more functional. If these qualify for
+extra points, great, but if not that's fine too
+
+  - cd: You can use "cd path" to change the current working directory
+    to the path specified. It supports absolute and relative paths,
+    and uses the chdir() system call.
+
+  - ?$: Using $? with no arguments returns the exit status of the last
+    process to terminate, similarly to how "echo $?" works in bash.
+
+  - An adaptive prompt, which displays "dsh#" if the user has
+    superuser status, "dsh$" otherwise.
+
+
+                                Joke
+########################################################################
+
+A physicist, an engineer and a programmer were in a car driving over a
+steep alpine pass when the brakes failed. The car was getting faster
+and faster, they were struggling to get round the corners and once or
+twice only the feeble crash barrier saved them from crashing down the
+side of the mountain. They were sure they were all going to die, when
+suddenly they spotted an escape lane. They pulled into the escape lane,
+and came safely to a halt.
+
+The physicist said "We need to model the friction in the brake pads and
+the resultant temperature rise, see if we can work out why they
+failed".
+
+The engineer said "I think I've got a few spanners in the back. I'll
+take a look and see if I can work out what's wrong".
+
+The programmer said "Why don't we get going again and see if it's
+reproducible?"
+
+-- Found at:
+http://stackoverflow.com/questions/234075/
+what-is-your-best-programmer-joke
+
+
