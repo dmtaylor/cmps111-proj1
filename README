@@ -67,6 +67,13 @@ details, which I will enumerate.
     concluded that it does not particularly matter.
 
 
+                              Test Files
+########################################################################
+Test_1 is a test file used extensively in testing the program,
+especially in background processes. Use the make target "tests" to
+build the binary test program.
+
+
                          Additional Features
 ########################################################################
 
@@ -84,6 +91,20 @@ extra points, great, but if not that's fine too
 
   - An adaptive prompt, which displays "dsh#" if the user has
     superuser status, "dsh$" otherwise.
+
+
+                                BUGS
+########################################################################
+
+  - If a process is running in the background and prints to the console,
+    the prompt will be messed up, such that the prompt prints, then
+    the output of the program, with input being on a newline (try it
+    to see what I mean). This irritating bug does not affect the
+    program running. To fix, press return with no input, and it will
+    fix itself.
+
+  - Any other bugs are unknown to the author. If any are found, please
+    inform the author of their existence at damtaylo@ucsc.edu
 
 
                                 Joke
