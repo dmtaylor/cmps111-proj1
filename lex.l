@@ -19,7 +19,7 @@ int fileno(FILE *);
 #define YY_INPUT(b,r,s) readInputForLexer(b,&r,s)
 %}
 
-WORD	[a-zA-Z0-9\/\.\-\=_]+
+WORD	[a-zA-Z0-9\/\.\-\=_\$\?]+
 SPECIAL	[()><|&;*]
 
 %%
