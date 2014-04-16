@@ -11,6 +11,7 @@ GEN_OUT   = lex.yy.c
 CSRC      = shell.c ${GEN_OUT}
 CSUBMITS  = shell.c ${GEN_IN}     
 OBJECTS	  = ${CSRC:.c=.o}
+TESTS     = test_1.c
 SOURCES   = ${CSUBMITS} ${MKFILE} README LICENSE design.pdf .gitignore
 
 all : ${EXECFILE}
@@ -29,6 +30,10 @@ ${GEN_OUT} : ${GEN_IN}
 
 clean :
 	- rm *.o
+
+tests: ${TESTS}
+	${CC} -c ${TESTS}
+	${CC} test_1.o -o test_1
 
 spotless : clean
 	- rm ${EXECFILE}
